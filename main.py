@@ -108,7 +108,10 @@ async def connect_to_websocket(uri, message1, message2):
         print(f"Sent: {message2}")
 
         while True:
-            response = await websocket.recv()
+            try:
+                response = await websocket.recv()
+            except:
+                continue
             # print(response)
             try:
                 global arry, amounts, total, to_file
