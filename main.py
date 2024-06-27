@@ -138,7 +138,7 @@ if __name__=='__main__':
             with open(csv_file_path, 'w+') as file:
                 file.write('Times,func_Call,Date\n')
         print(amounts)
-    send_telegram_message(message=amounts)
+    send_telegram_message(message=f'Amounts: {amounts}\nTotal amount: Rs.{total_amount}')
     uri = "wss://1xbet.com/games-frame/sockets/crash?whence=50&fcountry=71&ref=1&gr=70&appGuid=00000000-0000-0000-0000-000000000000&lng=en"
 
     message1 = '{"protocol":"json","version":1}'
