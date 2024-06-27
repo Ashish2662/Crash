@@ -14,13 +14,13 @@ start = 20
 times = 1.34
 chances = 26
 # a = {0: 20, 1: 26, 2: 35, 3: 47, 4: 62, 5: 83, 6: 110, 7: 147, 8: 195, 9: 260, 10: 346, 11: 460, 12: 612, 13: 814, 14: 1083, 15: 1441, 16: 1917, 17: 2549, 18: 3391, 19: 4510, 20: 5998, 21: 7978, 22: 10611}
-
+total_amount = 0
 for i in range(chances):
-    total_amount = sum(tuple(amounts.values()))
     if total_amount > 36000:
         break
     amounts.setdefault(i, int(start))
     start *= times
+    total_amount = sum(tuple(amounts.values()))
 
 def send_telegram_message(message=''):
     bot_token = "1390663072:AAGaeij7DseLoyKGAwYKm1kRJuBzZ_vUyvA"
@@ -137,8 +137,9 @@ if __name__=='__main__':
         except:
             with open(csv_file_path, 'w+') as file:
                 file.write('Times,func_Call,Date\n')
-        print(amounts)
+    print(amounts)
     send_telegram_message(message=f'Amounts: {amounts}\nTotal amount: Rs.{total_amount}')
+    exit()
     uri = "wss://1xbet.com/games-frame/sockets/crash?whence=50&fcountry=71&ref=1&gr=70&appGuid=00000000-0000-0000-0000-000000000000&lng=en"
 
     message1 = '{"protocol":"json","version":1}'
