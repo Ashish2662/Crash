@@ -136,7 +136,7 @@ async def connect_to_websocket(uri, message1, message2, arry, all_time_max):
             check_hour = datetime.datetime.now().strftime("%H")
 
             if int(check_hour) != check_hour_flag or reconnect:
-                send_telegram_message(message=f'[RUNNING] Automation working fine!')
+                send_telegram_message(message=f'[RUNNING] Automation working fine! {reconnect}')
                 check_hour_flag = int(check_hour)
                 reconnect = False
             
