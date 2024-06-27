@@ -14,6 +14,8 @@ total = 0
 start = 20
 times = 1.34
 chances = 26
+all_time_max = 31
+
 # a = {0: 20, 1: 26, 2: 35, 3: 47, 4: 62, 5: 83, 6: 110, 7: 147, 8: 195, 9: 260, 10: 346, 11: 460, 12: 612, 13: 814, 14: 1083, 15: 1441, 16: 1917, 17: 2549, 18: 3391, 19: 4510, 20: 5998, 21: 7978, 22: 10611}
 total_amount = 0
 for i in range(chances):
@@ -37,7 +39,7 @@ def send_telegram_message(message=''):
     response = requests.get(url, params=params)
     return response.json()
 
-def check_and_msg_tel_func(arry, times_data, amounts, warning_no=16, invest=0, times_lessthan=5, msg_on_after_iters=6, next_iter_time=[9, 15, 18, 22, 25, 30, 35, 40, 45]):
+def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=16, invest=0, times_lessthan=5, msg_on_after_iters=6, next_iter_time=[9, 15, 18, 22, 25, 30, 35, 40, 45]):
     warning_exit = ''
 
     if float(times_data) <= times_lessthan:
@@ -89,13 +91,14 @@ def check_and_msg_tel_func(arry, times_data, amounts, warning_no=16, invest=0, t
             invest = amounts[len(arry)- (msg_on_after_iters + 1 )]
         total = sum(tuple(amounts.values())[: len(arry) - (msg_on_after_iters)])
         WinAmount = times_lessthan* invest - total
-        
+
+        all_time_max = f'\n[ATM]: {times_data}' if times_data > all_time_max else ''
 
         if bool(arry) and len(arry) < msg_on_after_iters and len(arry) > (msg_on_after_iters-3):
-            send_telegram_message(message='[RESET], Before start crashed! | Crashed: {str(times_data)}')
+            send_telegram_message(message=f'[RESET], Before start crashed! | Crashed: {str(times_data)} {all_time_max}')
         
         elif bool(arry) and len(arry) > msg_on_after_iters:
-            send_telegram_message(message=f"[RESET], \n| Crashed: {str(times_data)} |\nExit at: {invest} | Total: {total}\nProfit: Rs. {WinAmount}") 
+            send_telegram_message(message=f"[RESET], \n| Crashed: {str(times_data)} |\nExit at: {invest} | Total: {total}\nProfit: Rs. {WinAmount} {all_time_max}") 
         arry = []
     
     return arry
@@ -119,7 +122,7 @@ async def connect_to_websocket(uri, message1, message2):
                 continue
             # print(response)
             try:
-                global arry, amounts, total, to_file
+                global arry, amounts, total, to_file,  all_time_max
                 if '"target":"OnCrash"' in response:
                     response = re.sub(r'[^\x20-\x7E]', '', response)
                     payload = json.loads(response)
@@ -133,7 +136,7 @@ async def connect_to_websocket(uri, message1, message2):
                         # print(f'{float(times):.2f} : {current_date}')
                         with open(csv_file_path, 'a') as file:
                             file.write(csv_data)
-                    arry = check_and_msg_tel_func(arry=arry, times_data=times, amounts=amounts)
+                    arry, all_time_max = check_and_msg_tel_func(arry=arry, times_data=times, amounts=amounts, all_time_max=all_time_max)
                     
             except Exception as e:
                 # print('Error processing WebSocket frame:', e)
