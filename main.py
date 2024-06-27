@@ -126,7 +126,8 @@ async def connect_to_websocket(uri, message1, message2):
                     arry = check_and_msg_tel_func(arry=arry, times_data=times, amounts=amounts)
                     
             except Exception as e:
-                print('Error processing WebSocket frame:', e)
+                # print('Error processing WebSocket frame:', e)
+                send_telegram_message(message=f'[FAILED] Error processing WebSocket frame: {str(e)}')
 
 if __name__=='__main__':
     if to_file:
@@ -143,4 +144,7 @@ if __name__=='__main__':
     message1 = '{"protocol":"json","version":1}'
     message2 = '{"arguments":[{"activity":30,"currency":99}],"invocationId":"31","target":"Guest","type":1}'
 
-    asyncio.get_event_loop().run_until_complete(connect_to_websocket(uri, message1, message2))
+    try:
+        asyncio.get_event_loop().run_until_complete(connect_to_websocket(uri, message1, message2))
+    except Exception as e:
+        send_telegram_message(message=f'[FAILED] Main Error: {str(e)}')
