@@ -104,13 +104,18 @@ async def connect_to_websocket(uri, message1, message2):
     async with websockets.connect(uri) as websocket:
         await websocket.send(message1)
         await websocket.send(message2)
+        flag = True
         print(f"Sent: {message1}")
         print(f"Sent: {message2}")
 
         while True:
             try:
                 response = await websocket.recv()
+                flag = True
             except:
+                if flag:
+                    send_telegram_message(message=f'[SKIP] Frame NF Site Down!')
+                    flag = False                
                 continue
             # print(response)
             try:
