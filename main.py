@@ -48,7 +48,10 @@ def send_telegram_message(message=''):
         "text": message
     }
     # print(url)
-    response = requests.get(url, params=params)
+    try:
+        response = requests.get(url, params=params)
+    except:
+        pass
     return response.json()
 
 def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=16, invest=0, times_lessthan=5, msg_on_after_iters=6, next_iter_time=[9, 15, 18, 22, 25, 30, 35, 40, 45]):
@@ -119,11 +122,12 @@ def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=1
     
     return arry, all_time_max
 
-async def connect_to_websocket(uri, message1, message2):  
+async def connect_to_websocket(uri, message1, message2, arry, all_time_max):  
     async with websockets.connect(uri) as websocket:
         await websocket.send(message1)
         await websocket.send(message2)
         flag = True
+        reconnect = False
         check_hour_flag = 0
         print(f"Sent: {message1}")
         print(f"Sent: {message2}")
@@ -131,21 +135,28 @@ async def connect_to_websocket(uri, message1, message2):
         while True:
             check_hour = datetime.datetime.now().strftime("%H")
 
-            if int(check_hour) != check_hour_flag:
+            if int(check_hour) != check_hour_flag or reconnect:
                 send_telegram_message(message=f'[RUNNING] Automation working fine!')
                 check_hour_flag = int(check_hour)
+                reconnect = False
             
             try:
                 response = await websocket.recv()
                 flag = True
-            except:
+
+            except (websockets.exceptions.ConnectionClosed, asyncio.TimeoutError, Exception) as e:
                 if flag:
-                    send_telegram_message(message=f'[SKIP] Frame NF Site Down!')
-                    flag = False                
+                    send_telegram_message(message=f'[SKIP] Reconnecting...')
+                    # print(f'Error: {str(e)}')
+                    flag = False
+                    reconnect = True
+                    await asyncio.sleep(5)
+                    await websocket.send(message1)
+                    await websocket.send(message2)
                 continue
-            # print(response)
+
             try:
-                global arry, amounts, total, to_file,  all_time_max
+                global amounts, total, to_file
                 if '"target":"OnCrash"' in response:
                     response = re.sub(r'[^\x20-\x7E]', '', response)
                     payload = json.loads(response)
@@ -182,8 +193,16 @@ if __name__=='__main__':
     message2 = '{"arguments":[{"activity":30,"currency":99}],"invocationId":"31","target":"Guest","type":1}'
 
     try:
-        asyncio.get_event_loop().run_until_complete(connect_to_websocket(uri, message1, message2))
+        asyncio.get_event_loop().run_until_complete(connect_to_websocket(uri, message1, message2, arry, all_time_max))
     except Exception as e:
         send_telegram_message(message=f'[FAILED] Main Error: {str(e)}')
 
     print('-Exit code 0')
+    
+            # except Exception as e:
+            #     if flag:
+            #         send_telegram_message(message=f'[SKIP] Frame NF Site Down!')
+            #         print(f'[SKIP] Frame NF Site Down!', arry, all_time_max, 'Restarted')
+            #         flag = False                
+            #     continue
+            # print(response)
