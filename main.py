@@ -48,10 +48,7 @@ def send_telegram_message(message=''):
         "text": message
     }
     # print(url)
-    try:
-        response = requests.get(url, params=params)
-    except:
-        pass
+    response = requests.get(url, params=params)
     return response.json()
 
 def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=16, invest=0, times_lessthan=5, msg_on_after_iters=6, next_iter_time=[9, 15, 18, 22, 25, 30, 35, 40, 45]):
@@ -136,7 +133,7 @@ async def connect_to_websocket(uri, message1, message2, arry, all_time_max):
             check_hour = datetime.datetime.now().strftime("%H")
 
             if int(check_hour) != check_hour_flag or reconnect:
-                send_telegram_message(message=f'[RUNNING] Automation working fine! {reconnect}')
+                send_telegram_message(message=f'[RUNNING] Automation working fine!')
                 check_hour_flag = int(check_hour)
                 reconnect = False
             
@@ -192,17 +189,11 @@ if __name__=='__main__':
     message1 = '{"protocol":"json","version":1}'
     message2 = '{"arguments":[{"activity":30,"currency":99}],"invocationId":"31","target":"Guest","type":1}'
 
-    try:
-        asyncio.get_event_loop().run_until_complete(connect_to_websocket(uri, message1, message2, arry, all_time_max))
-    except Exception as e:
-        send_telegram_message(message=f'[FAILED] Main Error: {str(e)}')
+    for i in range(20):
+        try:
+            asyncio.get_event_loop().run_until_complete(connect_to_websocket(uri, message1, message2, arry, all_time_max))
+        except Exception as e:
+            send_telegram_message(message=f'[FAILED] Main Error: {str(e)} _ {i}')
 
     print('-Exit code 0')
     
-            # except Exception as e:
-            #     if flag:
-            #         send_telegram_message(message=f'[SKIP] Frame NF Site Down!')
-            #         print(f'[SKIP] Frame NF Site Down!', arry, all_time_max, 'Restarted')
-            #         flag = False                
-            #     continue
-            # print(response)
