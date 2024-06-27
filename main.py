@@ -3,10 +3,8 @@ __author__='ASHISH SHARMA'
 import asyncio, re, json
 import os, datetime
 import requests
-from pyppeteer import launch, connect, errors
+import websockets
 
-# chrome_path = r'C:\Program Files\Google\Chrome\Application\chrome.exe'
-# chrome_path = os.path.join(os.getcwd(), 'Driver' ,'chrome.exe')
 csv_file_path = os.path.join(os.getcwd(), 'CrashData.csv')
 arry = []
 amounts = {}
@@ -70,57 +68,36 @@ def check_and_msg_tel_func(arry, times_data, amounts, warning_no=16, invest=0, t
                 send_telegram_message(message = f'[MAX]: {len(arry)} times < {times_lessthan}x')
     return arry
 
-async def get_ws_endpoint():
-    # browser = await launch(headless=True)
-    try:
-        browser = await launch(headless=True)
-    except errors.BrowserError as e:
-        print(f"BrowserError: {e}")
+async def connect_to_websocket(uri, message1, message2):
+     
+    async with websockets.connect(uri) as websocket:
+        await websocket.send(message1)
+        await websocket.send(message2)
+        print(f"Sent: {message1}")
+        print(f"Sent: {message2}")
 
-    # browser = await launch(executablePath=chrome_path)
-    ws_endpoint = browser.wsEndpoint
-    # await browser.close()
-    return ws_endpoint
+        while True:
+            response = await websocket.recv()
+            # print(response)
+            try:
+                global arry, amounts, total
+                if '"target":"OnCrash"' in response:
+                    response = re.sub(r'[^\x20-\x7E]', '', response)
+                    payload = json.loads(response)
+                    func_call = payload['arguments'][0]['l']
+                    times = payload['arguments'][0]['f']
+                    # ts = payload['arguments'][0]['ts']
+                    # print(times)
 
-async def main():   
-    ws_endpoint = await get_ws_endpoint()
-    browser = await connect(browserWSEndpoint=ws_endpoint, defaultViewport=None)
-    page = await browser.newPage()
-    await page.goto("https://1xbet.com/en/allgamesentrance/crash")
-
-    client = await page.target.createCDPSession()
-    await client.send('Network.enable')
-
-    async def process_websocket_frame(event):
-        payload_string = event['response']['payloadData']
-        print(payload_string)
-        try:
-            global arry, amounts, total
-            if '"target":"OnCrash"' in payload_string:
-                payload_string = re.sub(r'[^\x20-\x7E]', '', payload_string)
-                payload = json.loads(payload_string)
-                func_call = payload['arguments'][0]['l']
-                times = payload['arguments'][0]['f']
-                # ts = payload['arguments'][0]['ts']
-
-                current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  
-                csv_data = f"{float(times):.2f},{func_call},{current_date}\n"
-                # print(f'{float(times):.2f} : {current_date}')
-                with open(csv_file_path, 'a') as file:
-                    file.write(csv_data)
-                arry = check_and_msg_tel_func(arry=arry, times_data=times, amounts=amounts)
-                
-        except Exception as e:
-            print('Error processing WebSocket frame:', e)
-
-    client.on('Network.webSocketFrameReceived', lambda event: asyncio.ensure_future(process_websocket_frame(event)))
-
-
-    while True:
-        await page.keyboard.press("Tab")
-        await asyncio.sleep(1)
-        await page.keyboard.press("ArrowDown")
-        await asyncio.sleep(1)
+                    current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  
+                    csv_data = f"{float(times):.2f},{func_call},{current_date}\n"
+                    # print(f'{float(times):.2f} : {current_date}')
+                    with open(csv_file_path, 'a') as file:
+                        file.write(csv_data)
+                    arry = check_and_msg_tel_func(arry=arry, times_data=times, amounts=amounts)
+                    
+            except Exception as e:
+                print('Error processing WebSocket frame:', e)
 
 if __name__=='__main__':
     try:
@@ -130,5 +107,9 @@ if __name__=='__main__':
         with open(csv_file_path, 'w+') as file:
             file.write('Times,func_Call,Date\n')
     # print(amounts)
+    uri = "wss://1xbet.com/games-frame/sockets/crash?whence=50&fcountry=71&ref=1&gr=70&appGuid=00000000-0000-0000-0000-000000000000&lng=en"
 
-    asyncio.get_event_loop().run_until_complete(main())
+    message1 = '{"protocol":"json","version":1}'
+    message2 = '{"arguments":[{"activity":30,"currency":99}],"invocationId":"31","target":"Guest","type":1}'
+
+    asyncio.get_event_loop().run_until_complete(connect_to_websocket(uri, message1, message2))
