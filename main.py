@@ -5,6 +5,7 @@ import os, datetime
 import requests
 import websockets
 
+to_file= False
 csv_file_path = os.path.join(os.getcwd(), 'CrashData.csv')
 arry = []
 amounts = {}
@@ -108,7 +109,7 @@ async def connect_to_websocket(uri, message1, message2):
             response = await websocket.recv()
             # print(response)
             try:
-                global arry, amounts, total
+                global arry, amounts, total, to_file
                 if '"target":"OnCrash"' in response:
                     response = re.sub(r'[^\x20-\x7E]', '', response)
                     payload = json.loads(response)
@@ -116,25 +117,26 @@ async def connect_to_websocket(uri, message1, message2):
                     times = payload['arguments'][0]['f']
                     # ts = payload['arguments'][0]['ts']
                     # print(times)
-
-                    current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  
-                    csv_data = f"{float(times):.2f},{func_call},{current_date}\n"
-                    # print(f'{float(times):.2f} : {current_date}')
-                    with open(csv_file_path, 'a') as file:
-                        file.write(csv_data)
+                    if to_file:
+                        current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  
+                        csv_data = f"{float(times):.2f},{func_call},{current_date}\n"
+                        # print(f'{float(times):.2f} : {current_date}')
+                        with open(csv_file_path, 'a') as file:
+                            file.write(csv_data)
                     arry = check_and_msg_tel_func(arry=arry, times_data=times, amounts=amounts)
                     
             except Exception as e:
                 print('Error processing WebSocket frame:', e)
 
 if __name__=='__main__':
-    # try:
-    #     with open(csv_file_path, 'r') as file:
-    #         data = file.read()
-    # except:
-    #     with open(csv_file_path, 'w+') as file:
-    #         file.write('Times,func_Call,Date\n')
-    # print(amounts)
+    if to_file:
+        try:
+            with open(csv_file_path, 'r') as file:
+                data = file.read()
+        except:
+            with open(csv_file_path, 'w+') as file:
+                file.write('Times,func_Call,Date\n')
+        print(amounts)
     send_telegram_message(message=amounts)
     uri = "wss://1xbet.com/games-frame/sockets/crash?whence=50&fcountry=71&ref=1&gr=70&appGuid=00000000-0000-0000-0000-000000000000&lng=en"
 
