@@ -73,7 +73,7 @@ def check_and_msg_tel_func(arry, times_data, amounts, warning_no=16, invest=0, t
             send_telegram_message(message=warning_exit)
         
         elif len(arry) == chances:
-            send_telegram_message(message=f"[BK], Amount: {total} | Total chances: {chances}")
+            send_telegram_message(message=f"[BK], Amount: {total} | Crashed: {str(times_data)} | Total chances: {chances}")
 
         if len(arry) in next_iter_time:
             send_telegram_message(message = f'[EXCEED]: {len(arry)} times < {times_lessthan}x')
@@ -92,10 +92,10 @@ def check_and_msg_tel_func(arry, times_data, amounts, warning_no=16, invest=0, t
         
 
         if bool(arry) and len(arry) < msg_on_after_iters and len(arry) > (msg_on_after_iters-3):
-            send_telegram_message(message='[RESET], Before start crashed!')
+            send_telegram_message(message='[RESET], Before start crashed! | Crashed: {str(times_data)}')
         
         elif bool(arry) and len(arry) > msg_on_after_iters:
-            send_telegram_message(message=f"[RESET], \nExit at: {invest} | Total: {total}\nProfit: Rs. {WinAmount}") 
+            send_telegram_message(message=f"[RESET], \n| Crashed: {str(times_data)} |\nExit at: {invest} | Total: {total}\nProfit: Rs. {WinAmount}") 
         arry = []
     
     return arry
