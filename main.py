@@ -5,26 +5,38 @@ import os, datetime
 import requests
 import websockets
 
-to_file= False
+# To debug
+to_file = True
 csv_file_path = os.path.join(os.getcwd(), 'CrashData.csv')
+
+# Variables
 arry = []
 amounts = {}
 amounts_num = {}
 total = 0
-start = 20
-times = 1.34
-chances = 26
-all_time_max = 31
 
-# a = {0: 20, 1: 26, 2: 35, 3: 47, 4: 62, 5: 83, 6: 110, 7: 147, 8: 195, 9: 260, 10: 346, 11: 460, 12: 612, 13: 814, 14: 1083, 15: 1441, 16: 1917, 17: 2549, 18: 3391, 19: 4510, 20: 5998, 21: 7978, 22: 10611}
+# Logic ratio
+times = 1.33
+
+chances = 26
+# Amount in INR
+min_invest_cap = 20
+max_invest_cap = 36000
+
+# All time max crashed
+all_time_max = 33.87
+
 total_amount = 0
 for i in range(chances):
-    if total_amount > 36000:
-        break
-    amounts.setdefault(i, int(start))
-    amounts_num.setdefault(i+1, int(start))
-    start *= times
+    amounts.setdefault(i, int(min_invest_cap))
+    amounts_num.setdefault(i+1, int(min_invest_cap))
+    min_invest_cap *= times
     total_amount = sum(tuple(amounts.values()))
+    if total_amount > max_invest_cap:
+        amounts.popitem()
+        amounts_num.popitem()
+        total_amount = sum(tuple(amounts.values()))
+        break
 
 def send_telegram_message(message=''):
     bot_token = "1390663072:AAGaeij7DseLoyKGAwYKm1kRJuBzZ_vUyvA"
@@ -92,26 +104,37 @@ def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=1
         total = sum(tuple(amounts.values())[: len(arry) - (msg_on_after_iters)])
         WinAmount = times_lessthan* invest - total
 
-        all_time_max = f'\n[ATM]: {times_data}' if times_data > all_time_max else ''
+        if float(times_data) > all_time_max:
+            all_time_msg = f'\n[ATM]: {times_data}'
+            all_time_max = float(times_data)
+        else:
+            all_time_msg = ''
 
         if bool(arry) and len(arry) < msg_on_after_iters and len(arry) > (msg_on_after_iters-3):
-            send_telegram_message(message=f'[RESET], Before start crashed! | Crashed: {str(times_data)} {all_time_max}')
+            send_telegram_message(message=f'[RESET], Before start crashed! | Crashed: {str(times_data)} {all_time_msg}')
         
         elif bool(arry) and len(arry) > msg_on_after_iters:
-            send_telegram_message(message=f"[RESET], \n| Crashed: {str(times_data)} |\nExit at: {invest} | Total: {total}\nProfit: Rs. {WinAmount} {all_time_max}") 
+            send_telegram_message(message=f"[RESET], \n| Crashed: {str(times_data)} |\nExit at: {invest} | Total: {total}\nProfit: Rs. {WinAmount} {all_time_msg}") 
         arry = []
     
-    return arry
+    return arry, all_time_max
 
 async def connect_to_websocket(uri, message1, message2):  
     async with websockets.connect(uri) as websocket:
         await websocket.send(message1)
         await websocket.send(message2)
         flag = True
+        check_hour_flag = 0
         print(f"Sent: {message1}")
         print(f"Sent: {message2}")
 
         while True:
+            check_hour = datetime.datetime.now().strftime("%H")
+
+            if int(check_hour) != check_hour_flag:
+                send_telegram_message(message=f'[RUNNING] Automation working fine!')
+                check_hour_flag = int(check_hour)
+            
             try:
                 response = await websocket.recv()
                 flag = True
@@ -131,7 +154,7 @@ async def connect_to_websocket(uri, message1, message2):
                     # ts = payload['arguments'][0]['ts']
                     # print(times)
                     if to_file:
-                        current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  
+                        current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") 
                         csv_data = f"{float(times):.2f},{func_call},{current_date}\n"
                         # print(f'{float(times):.2f} : {current_date}')
                         with open(csv_file_path, 'a') as file:
@@ -162,3 +185,5 @@ if __name__=='__main__':
         asyncio.get_event_loop().run_until_complete(connect_to_websocket(uri, message1, message2))
     except Exception as e:
         send_telegram_message(message=f'[FAILED] Main Error: {str(e)}')
+
+    print('-Exit code 0')
