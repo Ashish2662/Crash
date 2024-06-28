@@ -6,7 +6,7 @@ import requests
 import websockets
 
 # To debug
-to_file = True
+to_file = False
 csv_file_path = os.path.join(os.getcwd(), 'CrashData.csv')
 
 # Variables
@@ -14,6 +14,7 @@ arry = []
 amounts = {}
 amounts_num = {}
 total = 0
+total_amount = 0
 
 # Logic ratio
 times = 1.33
@@ -26,7 +27,6 @@ max_invest_cap = 36000
 # All time max crashed
 all_time_max = 33.87
 
-total_amount = 0
 for i in range(chances):
     amounts.setdefault(i, int(min_invest_cap))
     amounts_num.setdefault(i+1, int(min_invest_cap))
@@ -119,12 +119,10 @@ def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=1
     
     return arry, all_time_max
 
-async def connect_to_websocket(uri, message1, message2, arry, all_time_max):  
+async def connect_to_websocket(uri, message1, message2, arry, all_time_max, i):  
     async with websockets.connect(uri) as websocket:
         await websocket.send(message1)
         await websocket.send(message2)
-        flag = True
-        reconnect = False
         check_hour_flag = 0
         print(f"Sent: {message1}")
         print(f"Sent: {message2}")
@@ -132,46 +130,38 @@ async def connect_to_websocket(uri, message1, message2, arry, all_time_max):
         while True:
             check_hour = datetime.datetime.now().strftime("%H")
 
-            if int(check_hour) != check_hour_flag or reconnect:
+            if int(check_hour) != check_hour_flag:
                 send_telegram_message(message=f'[RUNNING] Automation working fine!')
                 check_hour_flag = int(check_hour)
-                reconnect = False
             
             try:
                 response = await websocket.recv()
-                flag = True
 
             except (websockets.exceptions.ConnectionClosed, asyncio.TimeoutError, Exception) as e:
-                if flag:
-                    send_telegram_message(message=f'[SKIP] Reconnecting...')
-                    # print(f'Error: {str(e)}')
-                    flag = False
-                    reconnect = True
-                    await asyncio.sleep(5)
-                    await websocket.send(message1)
-                    await websocket.send(message2)
-                continue
+                send_telegram_message(message=f'[SKIP] Err Frame({i}) Reconnecting...')                 
+                return arry, all_time_max
 
             try:
                 global amounts, total, to_file
                 if '"target":"OnCrash"' in response:
                     response = re.sub(r'[^\x20-\x7E]', '', response)
                     payload = json.loads(response)
-                    func_call = payload['arguments'][0]['l']
+                    # func_call = payload['arguments'][0]['l']
                     times = payload['arguments'][0]['f']
                     # ts = payload['arguments'][0]['ts']
                     # print(times)
                     if to_file:
                         current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") 
-                        csv_data = f"{float(times):.2f},{func_call},{current_date}\n"
+                        csv_data = f"{float(times):.2f},{current_date}\n"
                         # print(f'{float(times):.2f} : {current_date}')
                         with open(csv_file_path, 'a') as file:
                             file.write(csv_data)
                     arry, all_time_max = check_and_msg_tel_func(arry=arry, times_data=times, amounts=amounts, all_time_max=all_time_max)
                     
             except Exception as e:
-                # print('Error processing WebSocket frame:', e)
-                send_telegram_message(message=f'[FAILED] Error processing WebSocket frame: {str(e)}')
+                send_telegram_message(message=f'[FAILED] Error logic: {str(e)}')
+                return arry, all_time_max
+
 
 if __name__=='__main__':
     if to_file:
@@ -180,7 +170,7 @@ if __name__=='__main__':
                 data = file.read()
         except:
             with open(csv_file_path, 'w+') as file:
-                file.write('Times,func_Call,Date\n')
+                file.write('Times,Date\n')
     # print(amounts_num)
     send_telegram_message(message=f'Amounts: {amounts_num}\nTotal amount: Rs.{total_amount}')
     
@@ -189,11 +179,10 @@ if __name__=='__main__':
     message1 = '{"protocol":"json","version":1}'
     message2 = '{"arguments":[{"activity":30,"currency":99}],"invocationId":"31","target":"Guest","type":1}'
 
-    for i in range(20):
+    for i in range(1000):
         try:
-            asyncio.get_event_loop().run_until_complete(connect_to_websocket(uri, message1, message2, arry, all_time_max))
+            arry, all_time_max = asyncio.get_event_loop().run_until_complete(connect_to_websocket(uri, message1, message2, arry, all_time_max, i))
         except Exception as e:
             send_telegram_message(message=f'[FAILED] Main Error: {str(e)} _ {i}')
 
     print('-Exit code 0')
-    
