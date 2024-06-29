@@ -56,7 +56,7 @@ def send_telegram_message(message=''):
         # print('Sending err')
         pass
 
-def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=16, invest=0, times_lessthan=5, msg_on_after_iters=6, next_iter_time=[9, 15, 18, 22, 25, 30, 35, 40, 45], max_invest_cap=1000000):
+def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=16, invest=1, times_lessthan=5, msg_on_after_iters=6, next_iter_time=[9, 15, 18, 22, 25, 30, 35, 40, 45], max_invest_cap=1000000):
     warning_exit = ''
 
     if float(times_data) <= times_lessthan:
