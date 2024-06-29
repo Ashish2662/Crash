@@ -6,7 +6,7 @@ import requests
 import websockets
 
 # To debug
-to_file = True
+to_file = False
 csv_file_path = os.path.join(os.getcwd(), 'CrashData.csv')
 
 # Variables
