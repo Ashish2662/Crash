@@ -10,8 +10,8 @@ to_file = False
 csv_file_path = os.path.join(os.getcwd(), 'CrashData.csv')
 
 # Variables
-# arry = ['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1','1','1','1','1', '1']
-arry = []
+arry = ['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1','1','1','1','1', '1']
+# arry = []
 amounts = {}    
 amounts_num = {}
 total = 0
@@ -57,7 +57,7 @@ def send_telegram_message(message=''):
         # print('Sending err')
         pass
 
-def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=16, invest=1, times_lessthan=15, msg_on_after_iters=6, next_iter_time=[9, 15, 18, 22, 25, 30, 32, 35, 40, 45], max_invest_cap=1000000):
+def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=16, invest=1, times_lessthan=4, msg_on_after_iters=6, next_iter_time=[9, 15, 18, 22, 25, 30, 32, 35, 40, 45], max_invest_cap=1000000):
     warning_exit = ''
 
     if float(times_data) <= times_lessthan:
@@ -121,7 +121,7 @@ def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=1
         if bool(arry) and len(arry) < msg_on_after_iters and len(arry) > (msg_on_after_iters-3):
             send_telegram_message(message=f'[RESET], Before start crashed! | Crashed: {str(times_data)} {all_time_msg}')
         
-        elif bool(arry) and len(arry) > msg_on_after_iters:
+        elif bool(arry) and len(arry) > msg_on_after_iters and WinAmount>1:
             send_telegram_message(message=f"[RESET], \n| Crashed: {str(times_data)} |\nExit at: {invest} | Total: {total}\nProfit: Rs. {WinAmount} {all_time_msg}") 
         arry = []
     
