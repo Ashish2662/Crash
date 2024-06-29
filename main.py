@@ -17,9 +17,9 @@ total = 0
 total_amount = 0
 
 # Logic ratio
-times = 1.33
+times = 1.323
 
-chances = 26
+chances = 33
 # Amount in INR
 min_invest_cap = 20
 max_invest_cap = 36000
@@ -38,6 +38,7 @@ for i in range(chances):
         total_amount = sum(tuple(amounts.values()))
         break
 
+
 def send_telegram_message(message=''):
     bot_token = "1390663072:AAGaeij7DseLoyKGAwYKm1kRJuBzZ_vUyvA"
     chat_id = "-1002221973967"
@@ -48,10 +49,14 @@ def send_telegram_message(message=''):
         "text": message
     }
     # print(url)
-    response = requests.get(url, params=params)
-    return response.json()
+    try:    
+        response = requests.get(url, params=params)
+        return response.json()
+    except:
+        # print('Sending err')
+        pass
 
-def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=16, invest=0, times_lessthan=5, msg_on_after_iters=6, next_iter_time=[9, 15, 18, 22, 25, 30, 35, 40, 45]):
+def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=16, invest=0, times_lessthan=5, msg_on_after_iters=6, next_iter_time=[9, 15, 18, 22, 25, 30, 35, 40, 45], max_invest_cap=1000000):
     warning_exit = ''
 
     if float(times_data) <= times_lessthan:
@@ -60,12 +65,12 @@ def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=1
             total = sum(tuple(amounts.values())[: len(arry) - (msg_on_after_iters - 1)])
             WinAmount = times_lessthan* invest - total
         else:
-            invest = 0
+            invest = 1
             WinAmount = 'NA'
             if len(arry) >= chances: 
                 total = sum(tuple(amounts.values())[: len(amounts)])
             else:
-                total = 0
+                total = 1
 
 
         if len(arry) == msg_on_after_iters - 3:
@@ -78,21 +83,22 @@ def check_and_msg_tel_func(arry, times_data, amounts, all_time_max, warning_no=1
             send_telegram_message(message=f"[WELCOME], | {times_data} | Wait for invest.")
       
 
-        elif len(arry) >= warning_no:
-            exit_from = total/invest
-            if len(arry) == warning_no:
+        elif len(arry) == warning_no:
+                exit_from = total/invest
                 warning_exit = f'\nWARNING,\nFor current invest: Rs.{invest}, Safe exit at {exit_from:.2f}'
-            else:
-                warning_exit += f'\nSE:{exit_from:.2f}'
-            send_telegram_message(message=warning_exit)
+            # else:
+            #     warning_exit += f'\nSE:{exit_from:.2f}'
+                send_telegram_message(message=warning_exit)
         
-        elif len(arry) == chances:
+        if len(arry) == chances+1:
             send_telegram_message(message=f"[BK], Amount: {total} | Crashed: {str(times_data)} | Total chances: {chances}")
+        elif len(arry) > chances+1:
+            send_telegram_message(message=f"[BK], \nLast crash: {str(times_data)}\nOld: {', '.join(arry)}\nStart at/Actual No.:{len(arry)- msg_on_after_iters + 1}/{len(arry)}\n")
 
         if len(arry) in next_iter_time:
             send_telegram_message(message = f'[EXCEED]: {len(arry)} times < {times_lessthan}x')
         
-        if len(arry) >= msg_on_after_iters:
+        if len(arry) >= msg_on_after_iters and len(arry) <= chances:
             send_telegram_message(message=f"[Ready], \nLast crash: {str(times_data)}\nOld: {', '.join(arry)}\nStart at/Actual No.:{len(arry)- msg_on_after_iters + 1}/{len(arry)}\nNext Invest: {invest}\nTotal: {total} {warning_exit}")
 
         arry.append(str(times_data))
@@ -142,7 +148,7 @@ async def connect_to_websocket(uri, message1, message2, arry, all_time_max, i):
                 return arry, all_time_max
 
             try:
-                global amounts, total, to_file
+                global amounts, total, to_file, max_invest_cap
                 if '"target":"OnCrash"' in response:
                     response = re.sub(r'[^\x20-\x7E]', '', response)
                     payload = json.loads(response)
@@ -156,7 +162,7 @@ async def connect_to_websocket(uri, message1, message2, arry, all_time_max, i):
                         # print(f'{float(times):.2f} : {current_date}')
                         with open(csv_file_path, 'a') as file:
                             file.write(csv_data)
-                    arry, all_time_max = check_and_msg_tel_func(arry=arry, times_data=times, amounts=amounts, all_time_max=all_time_max)
+                    arry, all_time_max = check_and_msg_tel_func(arry=arry, times_data=times, amounts=amounts, all_time_max=all_time_max, max_invest_cap=max_invest_cap)
                     
             except Exception as e:
                 send_telegram_message(message=f'[FAILED] Error logic: {str(e)}')
